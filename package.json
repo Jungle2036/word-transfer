@@ -1,0 +1,28 @@
+{
+  "name": "testword",
+  "version": "1.0.0",
+  "description": "",
+  "main": "word.js",
+  "bin": {
+    "testword": "word.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "pkg . --targets node14-macos-x64,node14-macos-arm64 --output dist/wordTransfer",
+    "build:mac": "pkg . --targets node14-macos-arm64 --output dist/wordTransfer",
+    "build:linux": "pkg . --targets node14-linux-x64 --output dist/wordTransfer",
+    "build:win": "pkg . --targets node14-win-x64 --output dist/wordTransfer.exe"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "docxtemplater": "^3.65.2",
+    "pizzip": "^3.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "packageManager": "pnpm@10.6.4+sha512.da3d715bfd22a9a105e6e8088cfc7826699332ded60c423b14ec613a185f1602206702ff0fe4c438cb15c979081ce4cb02568e364b15174503a63c7a8e2a5f6c"
+}
