@@ -573,9 +573,9 @@ async function main() {
   // Windows 控制台切换到 UTF-8，避免中文乱码
   if (process.platform === 'win32') {
     try {
-      require('child_process').execSync('chcp 65001', { stdio: 'ignore' })
+      require('child_process').execSync('chcp 65001', { stdio: 'pipe' })
     } catch (_) {
-      // chcp 不可用时静默忽略
+      console.warn('无法切换控制台编码为 UTF-8，中文可能显示乱码')
     }
   }
 
@@ -585,8 +585,7 @@ async function main() {
   // 1. 加载模板文件
   const templatePath = path.resolve(process.cwd(), args.template || 'template.docx')
   if (!fs.existsSync(templatePath)) {
-    console.error(`未找到模板文件: ${templatePath}`)
-    process.exit(1)
+    throw new Error(`未找到模板文件: ${templatePath}`)
   }
   const content = fs.readFileSync(templatePath, 'binary')
 
@@ -604,8 +603,7 @@ async function main() {
     productCodes = await readProductCodesFromExcel(args.excel)
     console.log(`成功读取 ${productCodes.length} 个产品编码`)
   } catch (error) {
-    console.error(`Excel文件读取失败: ${error.message}`)
-    process.exit(1)
+    throw new Error(`Excel文件读取失败: ${error.message}`)
   }
 
   // 3. 根据产品编码数量自动计算分页参数
