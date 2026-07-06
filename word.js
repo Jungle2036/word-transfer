@@ -210,6 +210,7 @@ function parseCliArgs(argv) {
   const args = {
     template: undefined,
     excel: undefined,
+    excelTemplate: undefined,
     output: 'output',
   }
 
@@ -229,6 +230,10 @@ function parseCliArgs(argv) {
         case 'excel':
           args.excel = value
           break
+        case 'excelTemplate':
+        case 'excel-template':
+          args.excelTemplate = value
+          break
         case 'output':
           args.output = value
           break
@@ -242,6 +247,10 @@ function parseCliArgs(argv) {
     }
     if (token === '--excel' || token === '-e') {
       args.excel = argv[++i]
+      continue
+    }
+    if (token === '--excel-template' || token === '-x') {
+      args.excelTemplate = argv[++i]
       continue
     }
     if (token === '--output' || token === '-o') {
@@ -351,8 +360,12 @@ function generateErrors(rowsPerPage, productCodes, startIndex) {
     const q3 = generateSpecialRandom()
 
     let row
+    let retries = 0
     // 重试直到 Q1 末值 ≤ 1000
     do {
+      if (++retries > 100) {
+        throw new Error(`generateErrors: 无法在第 ${i+1} 行生成满足 N≤1000 的数据（已重试 ${retries} 次）`)
+      }
       // Q3 段
       const q3_start = randomStartValue()         // E: 0.01~935.74
       const q3_instrument = 60                    // G: 固定
@@ -430,13 +443,8 @@ async function generateExcel(templatePath, outputPath, dataRows) {
   // 获取一行模板数据行的样式引用（第 13 行）
   const styleRow = worksheet.getRow(DATA_START_ROW)
 
-  // 清空模板原有数据区域（第 13~34 行，A~S 列）
-  for (let r = DATA_START_ROW; r < DATA_START_ROW + TEMPLATE_DATA_ROWS; r++) {
-    const row = worksheet.getRow(r)
-    for (let c = 1; c <= 19; c++) { // A(1) ~ S(19)
-      row.getCell(c).value = null
-    }
-  }
+  // 模板数据行样式已通过 readFile 保留，填充循环会覆写需要的行
+  // 多余行由下方收缩逻辑处理
 
   // 填充数据
   for (let i = 0; i < dataRows.length; i++) {
@@ -570,7 +578,7 @@ async function main() {
   console.log(`文件 "${outputFileName}" 已成功生成！`)
 
   // 7. 生成 Excel 文件（使用同一时间戳）
-  const excelTemplatePath = path.resolve(process.cwd(), 'template_excel.xlsx')
+  const excelTemplatePath = path.resolve(process.cwd(), args.excelTemplate || 'template_excel.xlsx')
   if (fs.existsSync(excelTemplatePath)) {
     // 将 pages 中的行数据扁平化为一维数组
     const flatDataRows = []
