@@ -566,6 +566,31 @@ async function main() {
 
   console.log(`文件 "${outputFileName}" 已成功生成！`)
 
+  // 7. 生成 Excel 文件（使用同一时间戳）
+  const excelTemplatePath = path.resolve(process.cwd(), 'template_excel.xlsx')
+  if (fs.existsSync(excelTemplatePath)) {
+    // 将 pages 中的行数据扁平化为一维数组
+    const flatDataRows = []
+    for (const page of pages) {
+      for (const row of page.errors) {
+        flatDataRows.push(row)
+      }
+    }
+
+    const excelOutputFileName = `${outputBaseName}-${timestamp}.xlsx`
+    const excelOutputPath = path.resolve(process.cwd(), excelOutputFileName)
+
+    try {
+      generateExcel(excelTemplatePath, excelOutputPath, flatDataRows)
+      console.log(`Excel文件 "${excelOutputFileName}" 已成功生成！`)
+    } catch (excelErr) {
+      console.error(`Excel文件生成失败: ${excelErr.message}`)
+      // 不中断程序，Word 文件已经生成成功
+    }
+  } else {
+    console.warn(`未找到Excel模板: ${excelTemplatePath}，跳过Excel生成`)
+  }
+
   // 双击运行时让窗口停留，便于查看结果
   await maybePauseBeforeExit(noArgs)
 }
