@@ -139,6 +139,33 @@ function generateSpecialRandom() {
   return parseFloat(result.toFixed(1))
 }
 
+/**
+ * 精度安全的四舍五入，避免 JS 浮点数误差
+ * @param {number} val - 原始值
+ * @param {number} decimals - 保留小数位数
+ * @returns {number}
+ */
+function roundToDecimals(val, decimals) {
+  const factor = Math.pow(10, decimals)
+  return Math.round((val + Number.EPSILON) * factor) / factor
+}
+
+/**
+ * 在 (min, max) 开区间内生成随机数，保留指定小数位
+ * 通过重试机制严格排除边界值
+ * @param {number} min - 下限（不含）
+ * @param {number} max - 上限（不含）
+ * @param {number} decimals - 小数位数
+ * @returns {number}
+ */
+function randomInRange(min, max, decimals) {
+  let val
+  do {
+    val = roundToDecimals(Math.random() * (max - min) + min, decimals)
+  } while (val <= min || val >= max)
+  return val
+}
+
 // --- 主程序 ---
 
 function formatTimestamp(date = new Date()) {
@@ -406,6 +433,8 @@ module.exports = {
   readProductCodesFromExcel,
   calculatePagination,
   generateSpecialRandom,
+  roundToDecimals,
+  randomInRange,
   generateErrors,
   generatePages,
 }
