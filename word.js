@@ -119,8 +119,8 @@ function calculatePagination(productCodes) {
 /**
  * 生成一个随机数。
  * 80% 的概率在 [-1.0, 1.0] 之间。
- * 20% 的概率在 [-2.0, -1.0) 或 (1.0, 2.0] 之间。
- * @returns {number} 返回一个 -2.0 到 2.0 之间的一位小数
+ * 20% 的概率在 [-1.5, -1.0) 或 (1.0, 1.5] 之间。
+ * @returns {number} 返回一个 -1.5 到 1.5 之间的一位小数
  */
 function generateSpecialRandom() {
   const randomValue = Math.random()
@@ -130,8 +130,8 @@ function generateSpecialRandom() {
     // 80% 的情况: 值在 [-1.0, 1.0]
     result = Math.random() * 2 - 1
   } else {
-    // 20% 的情况: 值在 [-2.0, -1.0) 或 (1.0, 2.0]
-    result = Math.random() + 1 // 生成 [1.0, 2.0) 的数
+    // 20% 的情况: 值在 [-1.5, -1.0) 或 (1.0, 1.5]
+    result = Math.random() * 0.5 + 1 // 生成 [1.0, 1.5) 的数
     if (Math.random() < 0.5) {
       result = -result // 50% 的概率变负
     }
