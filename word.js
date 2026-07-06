@@ -203,7 +203,8 @@ function formatTimestamp(date = new Date()) {
   const hh = pad(date.getHours())
   const mm = pad(date.getMinutes())
   const ss = pad(date.getSeconds())
-  return `${y}${m}${d}-${hh}${mm}${ss}`
+  const ms = String(date.getMilliseconds()).padStart(3, '0')
+  return `${y}${m}${d}-${hh}${mm}${ss}-${ms}`
 }
 
 function parseCliArgs(argv) {
@@ -334,6 +335,23 @@ async function ensureParamsInteractive(baseArgs) {
 
   if (!needInteractive) return baseArgs
 
+  // 引导提示
+  if (noArgs) {
+    console.log([
+      '══════════════════════════════════════════',
+      '  word-transfer — 水表检定报告生成工具',
+      '',
+      '  本程序将根据 Excel 中的产品编码，',
+      '  自动生成 Word 文档和 Excel 检验报告。',
+      '',
+      '  请确保以下文件与本程序在同一目录：',
+      '    • template.docx       (Word 模板)',
+      '    • template_excel.xlsx (Excel 报告模板)',
+      '══════════════════════════════════════════',
+      '',
+    ].join('\n'))
+  }
+
   const rl = createReadline()
   try {
     // 询问模板路径（若不存在则反复询问）
@@ -347,6 +365,7 @@ async function ensureParamsInteractive(baseArgs) {
         break
       }
       console.error(`未找到模板文件: ${absCandidate}`)
+      console.error('请将 template.docx 放在与本程序相同的目录下')
       templatePathInput = candidate
     }
 
@@ -367,6 +386,7 @@ async function ensureParamsInteractive(baseArgs) {
         }
       } else {
         console.error(`未找到Excel文件: ${absCandidate}`)
+        console.error('请将 .xlsx 或 .xls 文件放在与本程序相同的目录下')
         excelPathInput = candidate
       }
     }
@@ -594,6 +614,9 @@ async function main() {
   const rowsPerPage = paginationParams.rowsPerPage
 
   console.log(`将生成 ${numberOfPages} 页，每页最多 ${rowsPerPage} 行`)
+  if (productCodes.length > 500) {
+    console.log(`正在处理 ${productCodes.length} 条数据，请稍候...`)
+  }
 
   // 4. 组合模板所需数据结构
   // 兼容旧模板：继续提供单页的 `errors` 字段；
@@ -655,6 +678,19 @@ async function main() {
     }
   } else {
     console.warn(`未找到Excel模板: ${excelTemplatePath}，跳过Excel生成`)
+  }
+
+  if (productCodes.length > 500) {
+    console.log('处理完成！')
+  }
+
+  // Windows 下自动打开输出文件夹
+  if (process.platform === 'win32') {
+    try {
+      require('child_process').execSync(`start "" "${outputDir}"`, { stdio: 'ignore' })
+    } catch (_) {
+      // 打开文件夹失败不影响主流程
+    }
   }
 
   // 双击运行时让窗口停留，便于查看结果
