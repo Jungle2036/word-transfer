@@ -428,6 +428,10 @@ function generateExcel(templatePath, outputPath, dataRows) {
   const sheetName = workbook.SheetNames[0]
   const worksheet = workbook.Sheets[sheetName]
 
+  if (!dataRows || !Array.isArray(dataRows)) {
+    dataRows = []
+  }
+
   // 模板数据起始行（行号从 1 开始，Excel 内部行索引从 0 开始）
   const DATA_START_ROW = 13 // 第 13 行开始是数据行
   const TEMPLATE_DATA_ROWS = 22 // 模板有 22 行数据（第 13~34 行）
@@ -437,9 +441,7 @@ function generateExcel(templatePath, outputPath, dataRows) {
     for (let col = 0; col <= 18; col++) { // A(0) ~ S(18)
       const cellAddr = XLSX.utils.encode_cell({ r: row - 1, c: col })
       if (worksheet[cellAddr]) {
-        worksheet[cellAddr].v = undefined
-        worksheet[cellAddr].t = undefined
-        worksheet[cellAddr].w = undefined
+        delete worksheet[cellAddr]
       }
     }
   }
@@ -454,7 +456,7 @@ function generateExcel(templatePath, outputPath, dataRows) {
     worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 0 })] = { t: 'n', v: i + 1 }
 
     // B 列：表号（产品编码）
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 1 })] = { t: 's', v: row.q4 || '' }
+    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 1 })] = { t: 's', v: row.q4 ?? '' }
 
     // Q3 段 — E(4), F(5), G(6), H(7)
     worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 4 })] = { t: 'n', v: row.q3_start }
@@ -482,15 +484,16 @@ function generateExcel(templatePath, outputPath, dataRows) {
     worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 18 })] = { t: 's', v: '合格' }
   }
 
-  // 如果数据行数超过模板行数，扩展工作表范围
-  if (dataRows.length > TEMPLATE_DATA_ROWS) {
+  // 根据实际数据行数调整工作表范围
+  const range = XLSX.utils.decode_range(worksheet['!ref'])
+  if (dataRows.length > 0) {
     const lastDataRow = DATA_START_ROW + dataRows.length - 1
-    const range = XLSX.utils.decode_range(worksheet['!ref'])
-    if (lastDataRow > range.e.r + 1) {
-      range.e.r = lastDataRow - 1
-      worksheet['!ref'] = XLSX.utils.encode_range(range)
-    }
+    range.e.r = lastDataRow - 1
+  } else {
+    // 无数据行，只保留表头
+    range.e.r = DATA_START_ROW - 2
   }
+  worksheet['!ref'] = XLSX.utils.encode_range(range)
 
   // 写入文件
   XLSX.writeFile(workbook, outputPath)
