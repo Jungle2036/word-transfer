@@ -5,6 +5,7 @@ const fs = require('fs')
 const path = require('path')
 const readline = require('readline')
 const XLSX = require('xlsx')
+const ExcelJS = require('exceljs')
 
 /**
  * 从Excel文件读取产品编码（优化版本）
@@ -414,89 +415,98 @@ function generatePages(numberOfPages, rowsPerPage, productCodes) {
 }
 
 /**
- * 从模板生成 Excel 文件
+ * 从模板生成 Excel 文件（保留模板样式、合并单元格、边框等）
  * @param {string} templatePath - Excel 模板路径
  * @param {string} outputPath - 输出文件路径
  * @param {Array} dataRows - 数据行数组
+ * @returns {Promise<void>}
  */
-function generateExcel(templatePath, outputPath, dataRows) {
-  // 读取模板
+async function generateExcel(templatePath, outputPath, dataRows) {
+  const DATA_START_ROW = 13   // 数据起始行
+  const TEMPLATE_DATA_ROWS = 22 // 模板原有数据行数（第 13~34 行）
+
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Excel模板文件不存在: ${templatePath}`)
   }
-  const workbook = XLSX.readFile(templatePath)
-  const sheetName = workbook.SheetNames[0]
-  const worksheet = workbook.Sheets[sheetName]
-
   if (!dataRows || !Array.isArray(dataRows)) {
     dataRows = []
   }
 
-  // 模板数据起始行（行号从 1 开始，Excel 内部行索引从 0 开始）
-  const DATA_START_ROW = 13 // 第 13 行开始是数据行
-  const TEMPLATE_DATA_ROWS = 22 // 模板有 22 行数据（第 13~34 行）
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(templatePath)
+  const worksheet = workbook.getWorksheet(1)
 
-  // 清空模板原有数据区域（第 13 行到第 34 行的 A~S 列）
-  for (let row = DATA_START_ROW; row < DATA_START_ROW + TEMPLATE_DATA_ROWS; row++) {
-    for (let col = 0; col <= 18; col++) { // A(0) ~ S(18)
-      const cellAddr = XLSX.utils.encode_cell({ r: row - 1, c: col })
-      if (worksheet[cellAddr]) {
-        delete worksheet[cellAddr]
-      }
+  // 获取一行模板数据行的样式引用（第 13 行）
+  const styleRow = worksheet.getRow(DATA_START_ROW)
+
+  // 清空模板原有数据区域（第 13~34 行，A~S 列）
+  for (let r = DATA_START_ROW; r < DATA_START_ROW + TEMPLATE_DATA_ROWS; r++) {
+    const row = worksheet.getRow(r)
+    for (let c = 1; c <= 19; c++) { // A(1) ~ S(19)
+      row.getCell(c).value = null
     }
   }
 
   // 填充数据
   for (let i = 0; i < dataRows.length; i++) {
-    const row = dataRows[i]
-    const excelRow = DATA_START_ROW + i // Excel 行号（1-based）
-    const rowIdx = excelRow - 1 // 内部行索引（0-based）
+    const data = dataRows[i]
+    const rowNum = DATA_START_ROW + i
+    const row = worksheet.getRow(rowNum)
+
+    // 如果当前行超出模板原有行数，复制样式
+    if (rowNum >= DATA_START_ROW + TEMPLATE_DATA_ROWS) {
+      row.height = styleRow.height
+      for (let c = 1; c <= 19; c++) {
+        row.getCell(c).style = styleRow.getCell(c).style
+        if (styleRow.getCell(c).border) {
+          row.getCell(c).border = styleRow.getCell(c).border
+        }
+      }
+    }
 
     // A 列：序号
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 0 })] = { t: 'n', v: i + 1 }
-
+    row.getCell(1).value = i + 1
     // B 列：表号（产品编码）
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 1 })] = { t: 's', v: row.q4 ?? '' }
+    row.getCell(2).value = data.q4 ?? ''
 
-    // Q3 段 — E(4), F(5), G(6), H(7)
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 4 })] = { t: 'n', v: row.q3_start }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 5 })] = { t: 'n', v: row.q3_end }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 6 })] = { t: 'n', v: row.q3_instrument }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 7 })] = { t: 'n', v: row.q3 }
+    // Q3 段 — E(5), F(6), G(7), H(8)
+    row.getCell(5).value = data.q3_start
+    row.getCell(6).value = data.q3_end
+    row.getCell(7).value = data.q3_instrument
+    row.getCell(8).value = data.q3
 
-    // Q2 段 — I(8), J(9), K(10), L(11)
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 8 })] = { t: 'n', v: row.q2_start }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 9 })] = { t: 'n', v: row.q2_end }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 10 })] = { t: 'n', v: row.q2_instrument }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 11 })] = { t: 'n', v: row.q2 }
+    // Q2 段 — I(9), J(10), K(11), L(12)
+    row.getCell(9).value = data.q2_start
+    row.getCell(10).value = data.q2_end
+    row.getCell(11).value = data.q2_instrument
+    row.getCell(12).value = data.q2
 
-    // Q1 段 — M(12), N(13), O(14), P(15)
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 12 })] = { t: 'n', v: row.q1_start }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 13 })] = { t: 'n', v: row.q1_end }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 14 })] = { t: 'n', v: row.q1_instrument }
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 15 })] = { t: 'n', v: row.q1 }
+    // Q1 段 — M(13), N(14), O(15), P(16)
+    row.getCell(13).value = data.q1_start
+    row.getCell(14).value = data.q1_end
+    row.getCell(15).value = data.q1_instrument
+    row.getCell(16).value = data.q1
 
-    // Q 列(16)：密封性
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 16 })] = { t: 's', v: '无渗漏' }
-    // R 列(17)：外观
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 17 })] = { t: 's', v: '符合' }
-    // S 列(18)：检定结论
-    worksheet[XLSX.utils.encode_cell({ r: rowIdx, c: 18 })] = { t: 's', v: '合格' }
+    // Q(17): 密封性, R(18): 外观, S(19): 检定结论
+    row.getCell(17).value = '无渗漏'
+    row.getCell(18).value = '符合'
+    row.getCell(19).value = '合格'
   }
 
-  // 根据实际数据行数调整工作表范围
-  const range = XLSX.utils.decode_range(worksheet['!ref'])
-  if (dataRows.length > 0) {
-    const lastDataRow = DATA_START_ROW + dataRows.length - 1
-    range.e.r = lastDataRow - 1
-  } else {
-    // 无数据行，只保留表头
-    range.e.r = DATA_START_ROW - 2
+  // 如果数据行少于模板行数，收缩范围（清除尾部空行）
+  if (dataRows.length < TEMPLATE_DATA_ROWS) {
+    const firstEmptyRow = DATA_START_ROW + dataRows.length
+    for (let r = firstEmptyRow; r < DATA_START_ROW + TEMPLATE_DATA_ROWS; r++) {
+      const row = worksheet.getRow(r)
+      for (let c = 1; c <= 19; c++) {
+        row.getCell(c).value = null
+      }
+      row.height = undefined
+    }
   }
-  worksheet['!ref'] = XLSX.utils.encode_range(range)
 
-  // 写入文件
-  XLSX.writeFile(workbook, outputPath)
+  // 写入文件（保留所有样式）
+  await workbook.xlsx.writeFile(outputPath)
 }
 
 async function main() {
@@ -581,7 +591,7 @@ async function main() {
     const excelOutputPath = path.resolve(process.cwd(), excelOutputFileName)
 
     try {
-      generateExcel(excelTemplatePath, excelOutputPath, flatDataRows)
+      await generateExcel(excelTemplatePath, excelOutputPath, flatDataRows)
       console.log(`Excel文件 "${excelOutputFileName}" 已成功生成！`)
     } catch (excelErr) {
       console.error(`Excel文件生成失败: ${excelErr.message}`)
