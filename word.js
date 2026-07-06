@@ -462,6 +462,8 @@ async function generateExcel(templatePath, outputPath, dataRows) {
           row.getCell(c).border = styleRow.getCell(c).border
         }
       }
+      // 合并 B-D 列（与模板中表号列的合并一致）
+      worksheet.mergeCells(`B${rowNum}:D${rowNum}`)
     }
 
     // A 列：序号
