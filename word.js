@@ -550,6 +550,15 @@ async function generateExcel(templatePath, outputPath, dataRows) {
 }
 
 async function main() {
+  // Windows 控制台切换到 UTF-8，避免中文乱码
+  if (process.platform === 'win32') {
+    try {
+      require('child_process').execSync('chcp 65001', { stdio: 'ignore' })
+    } catch (_) {
+      // chcp 不可用时静默忽略
+    }
+  }
+
   const noArgs = process.argv.slice(2).length === 0
   const args = await ensureParamsInteractive(cli)
 
@@ -609,8 +618,15 @@ async function main() {
 
   const timestamp = formatTimestamp()
   const outputBaseName = args.output || 'output'
+
+  // 确保输出目录存在
+  const outputDir = path.resolve(process.cwd(), 'output')
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true })
+  }
+
   const outputFileName = `${outputBaseName}-${timestamp}.docx`
-  const outputPath = path.resolve(process.cwd(), outputFileName)
+  const outputPath = path.resolve(outputDir, outputFileName)
 
   fs.writeFileSync(outputPath, buf)
 
@@ -628,7 +644,7 @@ async function main() {
     }
 
     const excelOutputFileName = `${outputBaseName}-${timestamp}.xlsx`
-    const excelOutputPath = path.resolve(process.cwd(), excelOutputFileName)
+    const excelOutputPath = path.resolve(outputDir, excelOutputFileName)
 
     try {
       await generateExcel(excelTemplatePath, excelOutputPath, flatDataRows)
