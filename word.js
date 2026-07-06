@@ -292,6 +292,18 @@ function parseCliArgs(argv) {
     positional.push(token)
   }
 
+  // 位置参数自动推断：支持拖拽文件到 exe
+  for (const token of positional) {
+    const ext = path.extname(token).toLowerCase()
+    if ((ext === '.xlsx' || ext === '.xls') && !args.excel) {
+      args.excel = token
+    } else if (ext === '.docx' && !args.template) {
+      args.template = token
+    } else if ((ext === '.xlsx' || ext === '.xls') && !args.excelTemplate) {
+      args.excelTemplate = token
+    }
+  }
+
   // 不在此处强制校验，交由后续交互流程处理。
   return args
 }
@@ -369,9 +381,8 @@ async function ensureParamsInteractive(baseArgs) {
   }
 }
 
-async function maybePauseBeforeExit(interactiveStarted) {
-  const isWindows = process.platform === 'win32'
-  if (!interactiveStarted || !isWindows) return
+async function maybePauseBeforeExit() {
+  if (process.platform !== 'win32') return
   const rl = createReadline()
   await new Promise((resolve) => rl.question('按回车退出...', () => resolve(undefined)))
   rl.close()
@@ -631,7 +642,7 @@ async function main() {
   }
 
   // 双击运行时让窗口停留，便于查看结果
-  await maybePauseBeforeExit(noArgs)
+  await maybePauseBeforeExit()
 }
 
 // Export functions for testing
@@ -679,8 +690,7 @@ if (require.main === module) {
     }
 
     // 保持Windows平台的暂停功能
-    const noArgs = process.argv.slice(2).length === 0
-    await maybePauseBeforeExit(noArgs)
+    await maybePauseBeforeExit()
     process.exit(1)
   })
 }
