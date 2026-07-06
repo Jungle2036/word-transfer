@@ -1,7 +1,7 @@
 {
   "name": "word-transfer",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.1.0",
+  "description": "水表检定报告生成工具 — 从 Excel 产品编码生成 Word 文档和 Excel 检验报告",
   "main": "word.js",
   "bin": {
     "word-transfer": "word.js"
@@ -12,6 +12,12 @@
     "build:mac": "pkg . --targets node14-macos-arm64 --output dist/wordTransfer",
     "build:linux": "pkg . --targets node14-linux-x64 --output dist/wordTransfer",
     "build:win": "pkg . --targets node14-win-x64 --output dist/wordTransfer.exe"
+  },
+  "pkg": {
+    "assets": [
+      "template.docx",
+      "template_excel.xlsx"
+    ]
   },
   "keywords": [],
   "author": "",
