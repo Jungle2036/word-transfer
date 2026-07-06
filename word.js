@@ -347,21 +347,43 @@ async function maybePauseBeforeExit(interactiveStarted) {
   rl.close()
 }
 
-// 2. 数据构造工具函数：生成一页中的多行数据（优化版本）
+// 2. 数据构造工具函数：生成一页中的多行数据（包含 Word 字段和 Excel 字段）
 function generateErrors(rowsPerPage, productCodes, startIndex) {
-  // 预分配数组大小，提高性能
   const errors = new Array(rowsPerPage)
 
   for (let i = 0; i < rowsPerPage; i++) {
     const currentIndex = startIndex + i
+    const q1 = generateSpecialRandom()
+    const q2 = generateSpecialRandom()
+    const q3 = generateSpecialRandom()
 
-    // 直接创建对象，减少属性赋值操作
     const row = {
-      q1: generateSpecialRandom(),
-      q2: generateSpecialRandom(),
-      q3: generateSpecialRandom(),
+      // Word 模板字段
+      q1,
+      q2,
+      q3,
       q4: productCodes && currentIndex < productCodes.length ? productCodes[currentIndex] : undefined,
+
+      // Excel 字段 — Q3 (E-H)
+      q3_start: randomStartValue(),
+      q3_instrument: randomInstrumentValue(),
+      q3_end: null, // 延迟计算，q3 已知时填入
+
+      // Excel 字段 — Q2 (I-L)
+      q2_start: randomStartValue(),
+      q2_instrument: randomInstrumentValue(),
+      q2_end: null,
+
+      // Excel 字段 — Q1 (M-P)
+      q1_start: randomStartValue(),
+      q1_instrument: randomInstrumentValue(),
+      q1_end: null,
     }
+
+    // 反算末值（q1/q2/q3 已生成）
+    row.q3_end = calculateEndValue(row.q3_start, row.q3_instrument, q3)
+    row.q2_end = calculateEndValue(row.q2_start, row.q2_instrument, q2)
+    row.q1_end = calculateEndValue(row.q1_start, row.q1_instrument, q1)
 
     errors[i] = row
   }
