@@ -174,19 +174,11 @@ function randomInRange(min, max, decimals) {
 }
 
 /**
- * 生成水表始值：0.01 ~ 999.99，不含 0.00 和 1000.00
+ * 生成水表始值：0.01 ~ 935.74，不含边界
  * @returns {number}
  */
 function randomStartValue() {
-  return randomInRange(0.01, 999.99, 2)
-}
-
-/**
- * 生成量器示值：60.01 ~ 69.99，不含 60.00 和 70.00
- * @returns {number}
- */
-function randomInstrumentValue() {
-  return randomInRange(60.01, 69.99, 2)
+  return randomInRange(0.01, 935.74, 2)
 }
 
 /**
@@ -358,33 +350,32 @@ function generateErrors(rowsPerPage, productCodes, startIndex) {
     const q2 = generateSpecialRandom()
     const q3 = generateSpecialRandom()
 
-    const row = {
-      // Word 模板字段
-      q1,
-      q2,
-      q3,
-      q4: productCodes && currentIndex < productCodes.length ? productCodes[currentIndex] : undefined,
+    let row
+    // 重试直到 Q1 末值 ≤ 1000
+    do {
+      // Q3 段
+      const q3_start = randomStartValue()         // E: 0.01~935.74
+      const q3_instrument = 60                    // G: 固定
+      const q3_end = calculateEndValue(q3_start, q3_instrument, q3) // F
 
-      // Excel 字段 — Q3 (E-H)
-      q3_start: randomStartValue(),
-      q3_instrument: randomInstrumentValue(),
-      q3_end: null, // 延迟计算，q3 已知时填入
+      // Q2 段 — 始值 = Q3 末值
+      const q2_start = q3_end                     // I = F
+      const q2_instrument = 2                     // K: 固定
+      const q2_end = calculateEndValue(q2_start, q2_instrument, q2) // J
 
-      // Excel 字段 — Q2 (I-L)
-      q2_start: randomStartValue(),
-      q2_instrument: randomInstrumentValue(),
-      q2_end: null,
+      // Q1 段 — 始值 = Q2 末值
+      const q1_start = q2_end                     // M = J
+      const q1_instrument = 1                     // O: 固定
+      const q1_end = calculateEndValue(q1_start, q1_instrument, q1) // N
 
-      // Excel 字段 — Q1 (M-P)
-      q1_start: randomStartValue(),
-      q1_instrument: randomInstrumentValue(),
-      q1_end: null,
-    }
-
-    // 反算末值（q1/q2/q3 已生成）
-    row.q3_end = calculateEndValue(row.q3_start, row.q3_instrument, q3)
-    row.q2_end = calculateEndValue(row.q2_start, row.q2_instrument, q2)
-    row.q1_end = calculateEndValue(row.q1_start, row.q1_instrument, q1)
+      row = {
+        q1, q2, q3,
+        q4: productCodes && currentIndex < productCodes.length ? productCodes[currentIndex] : undefined,
+        q3_start, q3_instrument, q3_end,
+        q2_start, q2_instrument, q2_end,
+        q1_start, q1_instrument, q1_end,
+      }
+    } while (row.q1_end > 1000)
 
     errors[i] = row
   }
@@ -615,7 +606,6 @@ module.exports = {
   roundToDecimals,
   randomInRange,
   randomStartValue,
-  randomInstrumentValue,
   calculateEndValue,
   generateErrors,
   generatePages,
