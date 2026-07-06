@@ -207,6 +207,34 @@ function formatTimestamp(date = new Date()) {
 }
 
 function parseCliArgs(argv) {
+  // 检查 --help / -h
+  if (argv.includes('--help') || argv.includes('-h')) {
+    console.log([
+      'word-transfer — Excel 集成 Word/Excel 文档生成器',
+      '',
+      '用法:',
+      '  word-transfer.exe [选项]',
+      '  word-transfer.exe [Excel文件] [Word模板]     (支持拖拽文件到 exe)',
+      '',
+      '选项:',
+      '  -t, --template <path>       Word 模板文件路径 (默认: template.docx)',
+      '  -e, --excel <path>          Excel 数据文件路径 (默认: test.xlsx)',
+      '  -x, --excel-template <path> Excel 报告模板路径 (默认: template_excel.xlsx)',
+      '  -o, --output <prefix>       输出文件名前缀 (默认: output)',
+      '  -h, --help                  显示此帮助信息',
+      '',
+      '示例:',
+      '  word-transfer.exe -t 模板.docx -e 数据.xlsx -o 结果',
+      '  word-transfer.exe 数据.xlsx 模板.docx     (拖拽两个文件)',
+      '',
+      '输出:',
+      '  在同目录 output/ 文件夹下生成:',
+      '  {前缀}-{时间戳}.docx       Word 文档',
+      '  {前缀}-{时间戳}.xlsx       Excel 报告',
+    ].join('\n'))
+    process.exit(0)
+  }
+
   const args = {
     template: undefined,
     excel: undefined,
