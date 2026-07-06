@@ -159,11 +159,45 @@ function roundToDecimals(val, decimals) {
  * @returns {number}
  */
 function randomInRange(min, max, decimals) {
+  const step = 1 / Math.pow(10, decimals)
+  if (max - min <= 2 * step) {
+    throw new RangeError(
+      `randomInRange: range (${max - min}) too narrow for ${decimals} decimals`
+    )
+  }
   let val
   do {
     val = roundToDecimals(Math.random() * (max - min) + min, decimals)
   } while (val <= min || val >= max)
   return val
+}
+
+/**
+ * 生成水表始值：0.01 ~ 999.99，不含 0.00 和 1000.00
+ * @returns {number}
+ */
+function randomStartValue() {
+  return randomInRange(0.01, 999.99, 2)
+}
+
+/**
+ * 生成量器示值：60.01 ~ 69.99，不含 60.00 和 70.00
+ * @returns {number}
+ */
+function randomInstrumentValue() {
+  return randomInRange(60.01, 69.99, 2)
+}
+
+/**
+ * 根据始值、量器示值、示值误差反算末值
+ * 公式：F = round(startVal + instVal × (1 + error/100), 2)
+ * @param {number} startVal - 水表始值
+ * @param {number} instVal - 量器示值
+ * @param {number} error - 示值误差(%)
+ * @returns {number}
+ */
+function calculateEndValue(startVal, instVal, error) {
+  return roundToDecimals(startVal + instVal * (1 + error / 100), 2)
 }
 
 // --- 主程序 ---
@@ -435,6 +469,9 @@ module.exports = {
   generateSpecialRandom,
   roundToDecimals,
   randomInRange,
+  randomStartValue,
+  randomInstrumentValue,
+  calculateEndValue,
   generateErrors,
   generatePages,
 }
